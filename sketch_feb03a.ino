@@ -1,3 +1,12 @@
+#include <SoftwareSerial.h>
+
+#include <Wire.h>
+
+#define MAX_BTCMDLEN 128
+SoftwareSerial BTSerial(10,11);
+
+byte cmd[MAX_BTCMDLEN]; // received 128 bytes from an Android system
+int len = 0; // received command length
 
 
 // Plotclock
@@ -27,7 +36,7 @@
 #define SERVOPINRIGHT 3
 
 // lift positions of lifting servo
-#define LIFT0 1800 // on drawing surface
+#define LIFT0 1400 // on drawing surface
 #define LIFT1 1200  // between numbers
 #define LIFT2 800  // going towards sweeper
  
@@ -68,6 +77,9 @@ int last_min = 0;
 
 void setup() 
 { 
+    Serial.begin(9600);   // Arduino起始鮑率：9600
+    BTSerial.begin(9600); // HC-06 出廠的鮑率：每個藍牙晶片的鮑率都不太一樣，請務必確認
+  
   // Set current time only the first to values, hh,mm are needed
   setTime(19,38,0,0,0,0);
 
@@ -106,7 +118,29 @@ void loop()
     //number(8, 3, 111, 1);
     lift(2);
     
-    number(20, 20, 8, 2);
+    char str[MAX_BTCMDLEN];
+    int insize, ii;  
+    int tick=0;
+    while ( tick<MAX_BTCMDLEN ) { // 因為包率同為9600, Android送過來的字元可能被切成數份
+        if ( (insize=(BTSerial.available()))>0 ){  // 讀取藍牙訊息
+            for ( ii=0; ii<insize; ii++ ){
+                cmd[(len++)%MAX_BTCMDLEN]=char(BTSerial.read());
+            }
+        }
+        else {
+            tick++;
+        }
+    }
+    if ( len ) { 
+        sprintf(str,"%s",cmd);
+        number(30, 20, str, 2);
+   
+        cmd[0] = '\0';
+    }
+    len = 0;
+    
+    
+
     //number(26, 20, 2, 1);
 
    
